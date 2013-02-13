@@ -32,6 +32,10 @@ import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.io.OutputStream;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.*;
 
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
@@ -40,6 +44,7 @@ public class StaticMarkupBuilderASTTransformation extends AbstractASTTransformat
     private static final String ANNOTATION_NAME = StaticMarkupBuilderGenerator.class.getSimpleName();
     private static final ClassNode ABSTRACT_TAG = ClassHelper.make(AbstractTag.class);
     private static final ClassNode OUTPUTSTREAM_TYPE = ClassHelper.make(OutputStream.class);
+    private static final ClassNode ATTRIBUTE_CHECK_CN = ClassHelper.make(CheckAttributes.class);
     private static final Options DEFAULT_OPTIONS = new Options(true, Collections.<String>emptySet());
     private static final ClassNode ATTRIBUTE_MAP_TYPE = ClassHelper.MAP_TYPE.getPlainNodeReference();
 
@@ -186,6 +191,11 @@ public class StaticMarkupBuilderASTTransformation extends AbstractASTTransformat
             dtAnn.addMember("value", new ClassExpression(tag));
             closureArg.addAnnotation(dtAnn);
             Parameter attributes = new Parameter(ATTRIBUTE_MAP_TYPE, "attributes");
+            if (!options.attributes.isEmpty()) {
+                AnnotationNode value = new AnnotationNode(ATTRIBUTE_CHECK_CN);
+                value.addMember("value", makeList(options.attributes));
+                attributes.addAnnotation(value);
+            }
             params = new Parameter[]{
                     attributes,
                     closureArg
@@ -200,6 +210,14 @@ public class StaticMarkupBuilderASTTransformation extends AbstractASTTransformat
             );
             cn.addMethod(new MethodNode(tagName, ACC_PUBLIC, ClassHelper.VOID_TYPE, params, ClassNode.EMPTY_ARRAY, new ExpressionStatement(call)));
         }
+    }
+
+    private static ListExpression makeList(final Set<String> attributes) {
+        ListExpression list = new ListExpression();
+        for (String attribute : attributes) {
+            list.addExpression(new ConstantExpression(attribute));
+        }
+        return list;
     }
 
     private void translateSchema(ClassNode cn, ClosureExpression cle) {
@@ -239,8 +257,8 @@ public class StaticMarkupBuilderASTTransformation extends AbstractASTTransformat
         ClosureExpression schema = null;
         Options options = DEFAULT_OPTIONS;
         Expression arguments = expression.getArguments();
-        if (arguments instanceof ArgumentListExpression) {
-            ArgumentListExpression listExpression = (ArgumentListExpression) arguments;
+        if (arguments instanceof TupleExpression) {
+            TupleExpression listExpression = (TupleExpression) arguments;
             List<Expression> expressions = listExpression.getExpressions();
             int size = expressions.size();
             if (!expressions.isEmpty()) {
@@ -290,5 +308,11 @@ public class StaticMarkupBuilderASTTransformation extends AbstractASTTransformat
             this.allowText = allowText;
             this.attributes = Collections.unmodifiableSet(attributes);
         }
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    public static @interface CheckAttributes {
+        String[] value();
     }
 }

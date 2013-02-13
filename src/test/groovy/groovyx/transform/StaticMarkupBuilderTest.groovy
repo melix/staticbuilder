@@ -1,6 +1,7 @@
 package groovyx.transform
 
 import groovy.transform.CompileStatic
+import groovy.transform.TypeChecked
 import groovyx.runtime.AbstractTag
 
 class StaticMarkupBuilderTest extends GroovyTestCase {
@@ -45,6 +46,43 @@ class StaticMarkupBuilderTest extends GroovyTestCase {
             }
         }
         assert out.toString() == "<html><body>Hello <a href='http://groovy.codehaus.org'>Groovy</a></body></html>"
+    }
+
+    @CompileStatic
+    void testBuilderWithTagAndWrongAttribute() {
+        shouldFail {
+            new GroovyShell().evaluate '''import groovy.transform.CompileStatic
+                import groovyx.transform.StaticMarkupBuilder
+
+                @StaticMarkupBuilder
+                class Builder3 {
+                   static schema = {
+                       html {
+                           head {
+                               title()
+                           }
+                           body(allowText:true) {
+                               p(allowText: true)
+                               a(allowText: true, attributes:['href', 'target'])
+                           }
+                       }
+                   }
+                }
+
+                @CompileStatic
+                void foo() {
+                    def out = new ByteArrayOutputStream()
+                    def builder = new Builder3(out)
+
+                    builder.html {
+                        body {
+                            out << 'Hello '
+                            a(toto:'http://groovy.codehaus.org') { out << 'Groovy'}
+                        }
+                    }
+                }
+            '''
+        }
     }
 
     @StaticMarkupBuilder
