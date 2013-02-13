@@ -27,7 +27,7 @@ class StaticMarkupBuilderTest extends GroovyTestCase {
         assert builder instanceof AbstractTag
         builder.html {
             head { title() }
-            body {
+            bodyp {
                 p 'Hello'
             }
         }
