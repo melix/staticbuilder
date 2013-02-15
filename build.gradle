@@ -2,14 +2,12 @@ apply plugin: 'idea'
 apply plugin: 'groovy'
 
 repositories {
-    maven {
-        url 'http://snapshots.repository.codehaus.org/'
-    }
+    //mavenLocal()
     mavenCentral()
 }
 
 dependencies {
-    compile 'org.codehaus.groovy:groovy-all:2.1.1-SNAPSHOT'
+    compile 'org.codehaus.groovy:groovy-all:2.1.1'
     testCompile 'junit:junit:4.11'
 }
 
